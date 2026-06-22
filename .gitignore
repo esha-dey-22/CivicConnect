@@ -16,3 +16,10 @@ Thumbs.db
 .next/
 dist/
 build/
+
+# Python Virtual Environment
+.venv/
+.venv
+venv/
+venv
+
