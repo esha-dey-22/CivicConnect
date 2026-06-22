@@ -366,7 +366,10 @@ export default function ReportForm({ redirectOnSubmit = true }) {
         retrievePosition({ enableHighAccuracy: false, timeout: 8000, maximumAge: 0 })
           .then(handleSuccess)
           .catch((fallbackError) => {
-            console.error("Standard accuracy geolocation failed:", fallbackError);
+            console.warn("Standard accuracy geolocation failed:", {
+              code: fallbackError?.code,
+              message: fallbackError?.message
+            });
 
             let message = t.locationDenied;
             if (fallbackError.code === 1) {
