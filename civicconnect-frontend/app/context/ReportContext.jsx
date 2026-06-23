@@ -220,7 +220,8 @@ export const ReportProvider = ({ children }) => {
       });
 
       if (!response.ok) {
-        throw new Error("Server error");
+        const text = await response.text();
+        throw new Error(text || "Server error");
       }
 
       await fetchReports();
