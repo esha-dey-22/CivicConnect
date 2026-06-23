@@ -78,7 +78,7 @@ const normalizeReport = (report, fallbackIndex = 0) => {
   const parsedLongitude = Number(report?.coordinates?.longitude ?? report?.longitude ?? report?.lng ?? report?.lon);
 
   const coordinates =
-    Number.isFinite(parsedLatitude) && Number.isFinite(parsedLongitude)
+    Number.isFinite(parsedLatitude) && Number.isFinite(parsedLongitude) && (parsedLatitude !== 0 || parsedLongitude !== 0)
       ? {
           city: report?.location || "Live location",
           latitude: parsedLatitude,
