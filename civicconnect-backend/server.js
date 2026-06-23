@@ -5,7 +5,6 @@ require("dotenv").config();
 
 const mongoose = require("mongoose");
 const Issue = require("./models/Issue");
-const User = require("./models/User");
 const Notification = require("./models/Notification");
 const bcrypt = require("bcrypt");
 const multer = require("multer");
@@ -35,12 +34,13 @@ require("./db");
 /* ---------- ADMIN MIDDLEWARE ---------- */
 
 const isAdmin = (req, res, next) => {
-  const role = req.headers.role;
+  const apiKey = req.headers['x-admin-api-key'];
+  const expectedApiKey = process.env.ADMIN_API_KEY || "civicconnect_secure_admin_key_2026";
 
-  if (role === "admin") {
+  if (apiKey === expectedApiKey) {
     next();
   } else {
-    res.status(403).send("Access denied. Admin only.");
+    res.status(403).send("Access denied. Authorized administrator API calls only.");
   }
 };
 
@@ -128,6 +128,11 @@ app.post("/report", upload.single("image"), async (req, res) => {
 
     await issue.save();
 
+    if (description) {
+      axios.post(`${AI_URL}/api/update_index`, { new_complaint: description })
+        .catch(err => console.error("Failed to update AI TF-IDF index:", err.message));
+    }
+
     res.send("Issue reported with AI metadata");
 
   } catch (error) {
@@ -166,19 +171,16 @@ app.post("/notifications", isAdmin, async (req, res) => {
     });
     await notification.save();
 
-    // Send physical email if a recipient is specified
+    // Send physical email asynchronously in the background
     if (req.body.recipientEmail && transporter) {
-      try {
-        await transporter.sendMail({
-          from: `"CivicConnect Admin" <${process.env.EMAIL_USER}>`,
-          to: req.body.recipientEmail,
-          subject: "New Update from CivicConnect",
-          text: req.body.message
-        });
-        console.log("Notification email sent to: %s", req.body.recipientEmail);
-      } catch (emailErr) {
-        console.error("Failed to send notification email:", emailErr);
-      }
+      transporter.sendMail({
+        from: `"CivicConnect Admin" <${process.env.EMAIL_USER}>`,
+        to: req.body.recipientEmail,
+        subject: "New Update from CivicConnect",
+        text: req.body.message
+      })
+      .then(() => console.log("Notification email sent to: %s", req.body.recipientEmail))
+      .catch((emailErr) => console.error("Failed to send notification email:", emailErr));
     }
 
     res.json(notification);
@@ -197,18 +199,16 @@ app.put("/issues/:id", isAdmin, async (req, res) => {
       { new: true }
     );
 
+    // Send physical email asynchronously in the background
     if (req.body.status === "Resolved" && updatedIssue.reporterEmail && transporter) {
-      try {
-        const info = await transporter.sendMail({
-          from: `"CivicConnect Admin" <${process.env.EMAIL_USER}>`,
-          to: updatedIssue.reporterEmail,
-          subject: "Your Complaint has been Resolved!",
-          text: `Great news! Your reported issue "${updatedIssue.title}" has been successfully resolved by our team.`
-        });
-        console.log("Email sent to: %s", updatedIssue.reporterEmail);
-      } catch (emailErr) {
-        console.error("Failed to send email:", emailErr);
-      }
+      transporter.sendMail({
+        from: `"CivicConnect Admin" <${process.env.EMAIL_USER}>`,
+        to: updatedIssue.reporterEmail,
+        subject: "Your Complaint has been Resolved!",
+        text: `Great news! Your reported issue "${updatedIssue.title}" has been successfully resolved by our team.`
+      })
+      .then(() => console.log("Email sent to: %s", updatedIssue.reporterEmail))
+      .catch((emailErr) => console.error("Failed to send email:", emailErr));
     }
 
     res.json(updatedIssue);
@@ -228,48 +228,7 @@ app.delete("/issues/:id", isAdmin, async (req, res) => {
   }
 });
 
-/* ---------- REGISTER USER (UPDATED) ---------- */
-
-app.post("/register", async (req, res) => {
-  try {
-    const hashedPassword = await bcrypt.hash(req.body.password, 10);
-
-    const user = new User({
-      name: req.body.name,
-      email: req.body.email,
-      password: hashedPassword,
-      role: req.body.role || "user"   // ✅ NEW
-    });
-
-    await user.save();
-
-    res.send("User registered successfully");
-  } catch (error) {
-    res.status(500).send(error);
-  }
-});
-
-/* ---------- LOGIN USER (UPDATED) ---------- */
-
-app.post("/login", async (req, res) => {
-  try {
-    const user = await User.findOne({
-      email: req.body.email
-    });
-
-    if (user && await bcrypt.compare(req.body.password, user.password)) {
-      res.json({
-        message: "Login successful",
-        role: user.role   // ✅ NEW
-      });
-    } else {
-      res.send("Invalid email or password");
-    }
-
-  } catch (error) {
-    res.status(500).send(error);
-  }
-});
+// Removed legacy user login/registration endpoints. Auth is managed securely via Clerk on Next.js frontend.
 
 /* ---------- ADD COMMENT ---------- */
 

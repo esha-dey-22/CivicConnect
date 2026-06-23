@@ -5,6 +5,9 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import re
+import urllib.parse
+import requests
+import scipy.sparse
 
 app = FastAPI(title="CivicConnect AI Service")
 
@@ -28,12 +31,103 @@ class DuplicateCheckRequest(BaseModel):
     new_complaint: str
     existing_complaints: list[str]
 
+class UpdateIndexRequest(BaseModel):
+    new_complaint: str
+
 class ChatRequest(BaseModel):
     message: str
     has_image: bool = False
     history: list[dict] = []
 
-# --- 1. Automatic Complaint Categorization (Keyword/NLP Logic) ---
+# --- Helper: Auto Translation to English for Sentiment Analysis ---
+def translate_to_english(text: str) -> str:
+    if not text.strip():
+        return text
+    
+    # Fast check: skip translation API if text contains only ASCII characters
+    try:
+        text.encode('ascii')
+        return text
+    except UnicodeEncodeError:
+        pass
+
+    try:
+        url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q={urllib.parse.quote(text)}"
+        res = requests.get(url, timeout=5)
+        if res.ok:
+            data = res.json()
+            chunks = data[0] if data and len(data) > 0 else []
+            translated = "".join([chunk[0] for chunk in chunks if chunk])
+            return translated.strip()
+    except Exception as e:
+        print("Auto-translation to English failed:", e)
+    return text
+
+# --- 1. TF-IDF Index Cache for Duplicate Detection ---
+class DuplicateDetectorCache:
+    def __init__(self):
+        self.vectorizer = TfidfVectorizer(stop_words='english')
+        self.existing_complaints = []
+        self.tfidf_matrix = None
+        self.is_fitted = False
+
+    def initialize_index(self, complaints: list[str]):
+        self.existing_complaints = [c for c in complaints if c]
+        if not self.existing_complaints:
+            self.tfidf_matrix = None
+            self.is_fitted = False
+            return
+        
+        try:
+            self.tfidf_matrix = self.vectorizer.fit_transform(self.existing_complaints)
+            self.is_fitted = True
+        except ValueError:
+            self.tfidf_matrix = None
+            self.is_fitted = False
+
+    def add_to_index(self, new_complaint: str):
+        if not new_complaint.strip():
+            return
+        
+        self.existing_complaints.append(new_complaint)
+        
+        if not self.is_fitted:
+            self.initialize_index(self.existing_complaints)
+            return
+            
+        try:
+            new_vector = self.vectorizer.transform([new_complaint])
+            self.tfidf_matrix = scipy.sparse.vstack([self.tfidf_matrix, new_vector])
+        except Exception as e:
+            print("Failed to append vector to cache, rebuilding...", e)
+            self.initialize_index(self.existing_complaints)
+
+    def check_duplicate(self, new_complaint: str, threshold: float = 0.5):
+        if not new_complaint.strip() or not self.is_fitted or self.tfidf_matrix is None:
+            return {"is_duplicate": False, "confidence": 0.0, "matched_complaint": None}
+
+        try:
+            new_vector = self.vectorizer.transform([new_complaint])
+            similarities = cosine_similarity(new_vector, self.tfidf_matrix).flatten()
+            if len(similarities) == 0:
+                return {"is_duplicate": False, "confidence": 0.0, "matched_complaint": None}
+            
+            max_sim_index = similarities.argmax()
+            max_sim_score = float(similarities[max_sim_index])
+            
+            is_duplicate = max_sim_score >= threshold
+            return {
+                "is_duplicate": is_duplicate,
+                "confidence": max_sim_score,
+                "matched_complaint": self.existing_complaints[max_sim_index] if is_duplicate else None
+            }
+        except Exception as e:
+            print("Error during duplicate check:", e)
+            return {"is_duplicate": False, "confidence": 0.0, "matched_complaint": None}
+
+detector_cache = DuplicateDetectorCache()
+
+# --- 2. Automatic Complaint Categorization (Keyword/NLP Logic) ---
 CATEGORIES = {
     "Waste Management": ["garbage", "trash", "waste", "dustbin", "litter", "dump"],
     "Roads & Traffic": ["pothole", "road", "traffic", "signal", "street", "highway"],
@@ -46,18 +140,18 @@ CATEGORIES = {
 async def categorize_complaint(complaint: Complaint):
     text_lower = complaint.text.lower()
     
-    # Simple keyword logic to categorize
     for category, keywords in CATEGORIES.items():
         if any(re.search(rf"\b{kw}\b", text_lower) for kw in keywords):
             return {"category": category}
             
     return {"category": "Other / General"}
 
-# --- 2. Sentiment Analysis (VADER NLP Model) ---
+# --- 3. Sentiment Analysis (VADER NLP Model with Auto-translation) ---
 @app.post("/api/sentiment")
 async def analyze_sentiment(complaint: Complaint):
-    # Sentiment Analysis using VADER
-    scores = analyzer.polarity_scores(complaint.text)
+    # Translate non-English input to English first for VADER compatibility
+    translated_text = translate_to_english(complaint.text)
+    scores = analyzer.polarity_scores(translated_text)
     compound = scores['compound']
     
     if compound >= 0.05:
@@ -72,39 +166,23 @@ async def analyze_sentiment(complaint: Complaint):
         "scores": scores
     }
 
-# --- 3. Duplicate Complaint Detection (TF-IDF & Cosine Similarity Models) ---
+# --- 4. Duplicate Complaint Detection (TF-IDF Index Caching) ---
 @app.post("/api/check_duplicate")
 async def check_duplicate(request: DuplicateCheckRequest):
     if not request.existing_complaints:
         return {"is_duplicate": False, "confidence": 0.0, "matched_complaint": None}
 
-    texts = [request.new_complaint] + request.existing_complaints
-    
-    # Using TF-IDF Vectorizer
-    vectorizer = TfidfVectorizer(stop_words='english')
-    try:
-        tfidf_matrix = vectorizer.fit_transform(texts)
-    except ValueError:
-        # Happens if texts are empty or only contain stop words
-        return {"is_duplicate": False, "confidence": 0.0, "matched_complaint": None}
-    
-    # Calculate cosine similarity between the new complaint (index 0) and all others
-    similarities = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:]).flatten()
-    
-    # Find the most similar complaint
-    max_sim_index = similarities.argmax()
-    max_sim_score = float(similarities[max_sim_index])
-    
-    # Threshold for duplicate detection (e.g., 0.5 can be adjusted)
-    DUPLICATE_THRESHOLD = 0.5
-    
-    is_duplicate = max_sim_score >= DUPLICATE_THRESHOLD
-    
-    return {
-        "is_duplicate": is_duplicate,
-        "confidence": max_sim_score,
-        "matched_complaint": request.existing_complaints[max_sim_index] if is_duplicate else None
-    }
+    # Lazy-initialize index or rebuild if database size changed
+    if not detector_cache.is_fitted or len(detector_cache.existing_complaints) != len(request.existing_complaints):
+        print(f"Initializing TF-IDF index cache with {len(request.existing_complaints)} complaints...")
+        detector_cache.initialize_index(request.existing_complaints)
+        
+    return detector_cache.check_duplicate(request.new_complaint)
+
+@app.post("/api/update_index")
+async def update_index(request: UpdateIndexRequest):
+    detector_cache.add_to_index(request.new_complaint)
+    return {"status": "success", "cached_count": len(detector_cache.existing_complaints)}
     
 @app.get("/")
 def read_root():

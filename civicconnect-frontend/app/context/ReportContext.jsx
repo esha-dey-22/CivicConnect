@@ -74,26 +74,24 @@ const normalizePriority = (priority) => {
 
 const normalizeReport = (report, fallbackIndex = 0) => {
   const complaintId = report?._id || report?.id || `${Date.now()}-${fallbackIndex}`;
-  const fallbackLabel = report?.location || report?.category || report?.title || "Civic issue";
-  const parsedLatitude = Number(report?.latitude ?? report?.lat);
-  const parsedLongitude = Number(report?.longitude ?? report?.lng ?? report?.lon);
+  const parsedLatitude = Number(report?.coordinates?.latitude ?? report?.latitude ?? report?.lat);
+  const parsedLongitude = Number(report?.coordinates?.longitude ?? report?.longitude ?? report?.lng ?? report?.lon);
 
   const coordinates =
-    report?.coordinates ||
-    (Number.isFinite(parsedLatitude) && Number.isFinite(parsedLongitude)
+    Number.isFinite(parsedLatitude) && Number.isFinite(parsedLongitude)
       ? {
           city: report?.location || "Live location",
           latitude: parsedLatitude,
           longitude: parsedLongitude,
         }
-      : createCoordinates(fallbackLabel, fallbackIndex + 1));
+      : null;
 
   return {
     ...report,
     id: String(complaintId),
     status: normalizeStatus(report?.status),
     priority: normalizePriority(report?.priority),
-    location: report?.location || coordinates.city,
+    location: report?.location || coordinates?.city || "Unknown Location",
     language: report?.language || "en",
     voiceTranscript: report?.voiceTranscript || "",
     coordinates,
@@ -213,11 +211,10 @@ export const ReportProvider = ({ children }) => {
     }
 
     try {
-      const response = await fetch(`/api/issues/${id}`, {
+      const response = await fetch(`/api/admin/issues/${id}`, {
         method: "PUT",
         headers: {
-          "Content-Type": "application/json",
-          "role": "admin"
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ status: nextStatus })
       });
@@ -245,11 +242,10 @@ export const ReportProvider = ({ children }) => {
     }
 
     try {
-      const response = await fetch("/api/notifications", {
+      const response = await fetch("/api/admin/notifications", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "role": "admin"
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           message: trimmedMessage,

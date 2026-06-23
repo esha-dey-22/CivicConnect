@@ -18,9 +18,9 @@ export default async function AdminLayout({ children }) {
   const isAllowedAdmin = ADMIN_EMAILS.includes(email);
   const isDevelopment = process.env.NODE_ENV !== "production";
 
-  // if (!isAllowedAdmin && !isDevelopment) {
-  //   redirect("/");
-  // }
+  if (!isAllowedAdmin && !isDevelopment) {
+    redirect("/");
+  }
 
   const adminName = user.fullName || `${user.firstName || "Admin"} ${user.lastName || ""}`.trim() || "Administrator";
 
