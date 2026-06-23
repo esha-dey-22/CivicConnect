@@ -13,7 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { MapPin, Radar, Waves } from "lucide-react";
+import { MapPin, Radar, RotateCw, Waves } from "lucide-react";
 import ReportForm from "../../components/ReportForm";
 import ComplaintsRegistry from "../../components/ComplaintsRegistry";
 import { useReport } from "../context/ReportContext";
@@ -26,7 +26,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("report");
   const router = useRouter();
   const { isLoaded, isSignedIn, user } = useUser();
-  const { reports } = useReport();
+  const { reports, refetchReports, reportsLoading } = useReport();
 
   const pending = reports.filter((report) => report.status === "Pending").length;
   const processing = reports.filter((report) => report.status === "Under Process").length;
@@ -136,10 +136,20 @@ export default function Dashboard() {
 
       {activeTab === "stats" && (
         <div className="space-y-6 rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-8">
-          <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-sky-300/80">Status analytics</p>
-            <h2 className="mt-2 text-xl font-semibold text-white sm:text-2xl">Complaint progress bar graph</h2>
-            <p className="mt-2 text-sm text-slate-300">The chart updates automatically as you add complaints and status values change.</p>
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+            <div>
+              <p className="text-xs uppercase tracking-[0.24em] text-sky-300/80">Status analytics</p>
+              <h2 className="mt-2 text-xl font-semibold text-white sm:text-2xl">Complaint progress bar graph</h2>
+              <p className="mt-2 text-sm text-slate-300">The chart updates automatically as you add complaints and status values change.</p>
+            </div>
+            <button
+              onClick={refetchReports}
+              disabled={reportsLoading}
+              className="flex items-center justify-center gap-2 self-start rounded-xl border border-white/20 bg-white/10 px-5 py-3 font-semibold text-white shadow-lg transition duration-300 hover:scale-105 active:scale-95 disabled:opacity-50"
+            >
+              <RotateCw className={`h-4 w-4 ${reportsLoading ? "animate-spin" : ""}`} />
+              {reportsLoading ? "Reloading..." : "Reload"}
+            </button>
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">

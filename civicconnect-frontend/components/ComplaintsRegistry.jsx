@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { RotateCw } from "lucide-react";
 import { useReport } from "../app/context/ReportContext";
 import ComplaintTable from "./ComplaintTable";
 
@@ -24,7 +25,7 @@ const CATEGORY_FILTER_OPTIONS = [
 ];
 
 export default function ComplaintsRegistry() {
-  const { reports, notifications, reportsLoading, reportsError } = useReport();
+  const { reports, notifications, reportsLoading, reportsError, refetchReports } = useReport();
   const [selectedCategory, setSelectedCategory] = useState("All");
 
   const categoryOptions = useMemo(() => {
@@ -80,19 +81,29 @@ export default function ComplaintsRegistry() {
       {reportsLoading ? <p className="mb-4 text-sm text-slate-300">Loading complaints...</p> : null}
       {reportsError ? <p className="mb-4 text-sm text-red-300">{reportsError}</p> : null}
 
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <label className="text-sm font-medium text-slate-300">Filter by category</label>
-        <select
-          value={selectedCategory}
-          onChange={(event) => setSelectedCategory(event.target.value)}
-          className="min-w-60 rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3 text-base text-white outline-none transition focus:border-sky-400/50"
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="text-sm font-medium text-slate-300">Filter by category</label>
+          <select
+            value={selectedCategory}
+            onChange={(event) => setSelectedCategory(event.target.value)}
+            className="min-w-60 rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3 text-base text-white outline-none transition focus:border-sky-400/50"
+          >
+            {categoryOptions.map((category) => (
+              <option key={category} value={category} className="text-slate-900">
+                {category}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button
+          onClick={refetchReports}
+          disabled={reportsLoading}
+          className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-base text-white outline-none transition hover:bg-white/10 active:scale-95 disabled:opacity-50"
         >
-          {categoryOptions.map((category) => (
-            <option key={category} value={category} className="text-slate-900">
-              {category}
-            </option>
-          ))}
-        </select>
+          <RotateCw className={`h-4 w-4 ${reportsLoading ? "animate-spin" : ""}`} />
+          {reportsLoading ? "Reloading..." : "Reload"}
+        </button>
       </div>
 
       <ComplaintTable

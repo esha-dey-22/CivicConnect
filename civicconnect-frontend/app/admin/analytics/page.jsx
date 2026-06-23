@@ -10,9 +10,10 @@ import {
   YAxis,
 } from "recharts";
 import { useReport } from "../../context/ReportContext";
+import { RotateCw } from "lucide-react";
 
 export default function AdminAnalyticsPage() {
-  const { reports } = useReport();
+  const { reports, refetchReports, reportsLoading } = useReport();
 
   const pending = reports.filter((report) => report.status === "Pending").length;
   const processing = reports.filter((report) => report.status === "Under Process").length;
@@ -26,12 +27,22 @@ export default function AdminAnalyticsPage() {
 
   return (
     <div className="space-y-6 text-[var(--admin-text)]">
-      <div className="rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-panel)] p-6 shadow-xl shadow-black/10">
-        <p className="text-sm uppercase tracking-[0.24em] text-[var(--admin-muted)]">Analytics</p>
-        <h2 className="mt-2 text-2xl font-semibold">Complaint resolution bar graph</h2>
-        <p className="mt-3 max-w-3xl text-sm text-[var(--admin-muted)]">
-          This chart shows the live distribution of complaint statuses from the shared report context.
-        </p>
+      <div className="flex flex-col justify-between gap-4 rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-panel)] p-6 shadow-xl shadow-black/10 sm:flex-row sm:items-start">
+        <div>
+          <p className="text-sm uppercase tracking-[0.24em] text-[var(--admin-muted)]">Analytics</p>
+          <h2 className="mt-2 text-2xl font-semibold">Complaint resolution bar graph</h2>
+          <p className="mt-3 max-w-3xl text-sm text-[var(--admin-muted)]">
+            This chart shows the live distribution of complaint statuses from the shared report context.
+          </p>
+        </div>
+        <button
+          onClick={refetchReports}
+          disabled={reportsLoading}
+          className="flex items-center justify-center gap-2 self-start rounded-2xl border border-white/10 bg-slate-950/50 px-5 py-3 text-base text-white outline-none transition hover:bg-slate-900/60 active:scale-95 disabled:opacity-50"
+        >
+          <RotateCw className={`h-4 w-4 ${reportsLoading ? "animate-spin" : ""}`} />
+          {reportsLoading ? "Reloading..." : "Reload"}
+        </button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

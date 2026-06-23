@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { useReport } from "../app/context/ReportContext";
+import { RotateCw } from "lucide-react";
 
 const SEARCH_RADIUS_KM = 25;
 
@@ -114,6 +116,7 @@ const groupReportsByArea = (reports) => {
 };
 
 export default function MapView({ reports = [] }) {
+  const { refetchReports, reportsLoading } = useReport();
   const mapRef = useRef(null);
   const leafletMap = useRef(null);
   const focusMarkerRef = useRef(null);
@@ -207,7 +210,6 @@ export default function MapView({ reports = [] }) {
           ? `Searched area complaints: ${areaCount} within ${SEARCH_RADIUS_KM} km. Marker density is ${areaDensityLabel.toLowerCase()}.`
           : `Searched area complaints: ${areaCount} within ${SEARCH_RADIUS_KM} km for ${selectedPriority.toLowerCase()} priority.`
       );
-      return;
     }
 
     const groupedReports = groupReportsByArea(scopedReports);
@@ -229,7 +231,9 @@ export default function MapView({ reports = [] }) {
         );
     });
 
-    setAreaSummary(`Showing ${scopedReports.length} complaints across all mapped areas.`);
+    if (!center) {
+      setAreaSummary(`Showing ${scopedReports.length} complaints across all mapped areas.`);
+    }
   };
 
   const getLocationDetails = async (latitude, longitude) => {
@@ -398,6 +402,14 @@ export default function MapView({ reports = [] }) {
           <option value="Medium" className="text-slate-900">Medium priority</option>
           <option value="Low" className="text-slate-900">Low priority</option>
         </select>
+        <button
+          onClick={refetchReports}
+          disabled={reportsLoading}
+          className="flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3 font-semibold text-white shadow-lg transition duration-300 hover:scale-105 active:scale-95 disabled:opacity-50 sm:w-auto"
+        >
+          <RotateCw className={`h-4 w-4 ${reportsLoading ? "animate-spin" : ""}`} />
+          {reportsLoading ? "Reloading..." : "Reload"}
+        </button>
       </div>
 
       {locationStatus && (

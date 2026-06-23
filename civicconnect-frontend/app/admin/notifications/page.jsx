@@ -61,8 +61,8 @@ export default function AdminNotificationsPage() {
           {notifications.length === 0 ? (
             <p className="text-sm text-[var(--admin-muted)]">No notifications have been sent yet.</p>
           ) : (
-            notifications.map((notification) => (
-              <div key={notification.id} className="rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-panel-soft)] px-4 py-3">
+            notifications.map((notification, index) => (
+              <div key={notification._id || notification.id || index} className="rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-panel-soft)] px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.16em] text-[var(--admin-muted)]">
                   {notification.recipientEmail ? `To: ${notification.recipientEmail}` : "To: All users"}
                 </p>

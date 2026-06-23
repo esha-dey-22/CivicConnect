@@ -30,7 +30,7 @@ export default async function AdminLayout({ children }) {
       <AdminSidebar adminName={adminName} adminEmail={email} />
 
       <div className="min-h-screen lg:pl-72">
-        <header className="sticky top-0 z-20 border-b border-(--admin-border) bg-(--admin-panel)/95 px-4 py-4 backdrop-blur-xl sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-20 border-b border-(--admin-border) bg-(--admin-panel)/95 pl-18 pr-4 py-4 backdrop-blur-xl sm:pl-22 sm:pr-6 lg:px-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.24em] text-(--admin-muted)">Government operations</p>

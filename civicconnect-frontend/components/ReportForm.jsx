@@ -420,32 +420,7 @@ export default function ReportForm({ redirectOnSubmit = true }) {
       return;
     }
 
-    let resolvedCoordinates = coordinates;
-
-    // If no coordinates captured (manual text entry), attempt forward geocoding
-    if (!resolvedCoordinates && location.trim()) {
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location.trim())}`,
-          {
-            headers: {
-              "User-Agent": "CivicConnect/1.0"
-            }
-          }
-        );
-        if (response.ok) {
-          const payload = await response.json();
-          if (payload && payload.length > 0) {
-            resolvedCoordinates = {
-              latitude: Number(payload[0].lat),
-              longitude: Number(payload[0].lon)
-            };
-          }
-        }
-      } catch (err) {
-        console.error("Forward geocoding failed:", err);
-      }
-    }
+    const resolvedCoordinates = coordinates;
 
     const submission = await addReport({
       title,

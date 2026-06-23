@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { useReport } from "../app/context/ReportContext";
+import { RotateCw } from "lucide-react";
 
 const DEFAULT_CENTER = [22.9734, 78.6569];
 const SEARCH_RADIUS_KM = 25;
@@ -115,6 +117,7 @@ const createFocusIcon = (color = "#22c55e") =>
   });
 
 export default function AdminMapView({ reports = [] }) {
+  const { refetchReports, reportsLoading } = useReport();
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerLayerRef = useRef(null);
@@ -217,16 +220,18 @@ export default function AdminMapView({ reports = [] }) {
       if (areaCount === 0) {
         markerLayerRef.current.clearLayers();
       }
-
-      return;
     }
 
     const groupedMarkers = groupReportsByArea(scopedMarkers);
 
-    setAreaSummary(`Showing ${scopedMarkers.length} complaints across all mapped areas.`);
+    if (!searchedArea) {
+      setAreaSummary(`Showing ${scopedMarkers.length} complaints across all mapped areas.`);
+    }
 
     if (groupedMarkers.length === 0) {
-      mapInstanceRef.current.setView(DEFAULT_CENTER, 5);
+      if (!searchedArea) {
+        mapInstanceRef.current.setView(DEFAULT_CENTER, 5);
+      }
       return;
     }
 
@@ -303,7 +308,7 @@ export default function AdminMapView({ reports = [] }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
+      <div className="grid gap-3 md:grid-cols-[1fr_auto_auto_auto]">
         <input
           type="text"
           value={city}
@@ -327,6 +332,15 @@ export default function AdminMapView({ reports = [] }) {
           className="rounded-2xl bg-sky-500 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-sky-400"
         >
           Search
+        </button>
+        <button
+          type="button"
+          onClick={refetchReports}
+          disabled={reportsLoading}
+          className="flex items-center justify-center gap-2 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-panel-soft)] px-5 py-3 text-sm font-semibold text-[var(--admin-text)] outline-none transition hover:bg-slate-900 active:scale-95 disabled:opacity-50"
+        >
+          <RotateCw className={`h-4 w-4 ${reportsLoading ? "animate-spin" : ""}`} />
+          {reportsLoading ? "Reloading..." : "Reload"}
         </button>
       </div>
 

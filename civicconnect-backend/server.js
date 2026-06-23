@@ -111,27 +111,34 @@ app.post("/report", upload.single("image"), async (req, res) => {
       }
     }
 
-    // Server-side forward geocoding fallback for manual text location entries
+    // Server-side progressive forward geocoding fallback for manual text location entries
     if ((coordinates.latitude === 0 && coordinates.longitude === 0) && req.body.location) {
-      try {
-        const geoRes = await axios.get(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(req.body.location)}`,
-          {
-            headers: {
-              "User-Agent": "CivicConnect/1.0"
-            },
-            timeout: 4000
+      const parts = req.body.location.split(",").map(p => p.trim()).filter(Boolean);
+      for (let i = 0; i < parts.length; i++) {
+        const searchStr = parts.slice(i).join(", ");
+        if (!searchStr) continue;
+
+        try {
+          const geoRes = await axios.get(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchStr)}`,
+            {
+              headers: {
+                "User-Agent": "CivicConnect/1.0"
+              },
+              timeout: 4000
+            }
+          );
+          if (geoRes.data && geoRes.data.length > 0) {
+            coordinates = {
+              latitude: Number(geoRes.data[0].lat),
+              longitude: Number(geoRes.data[0].lon)
+            };
+            console.log(`Server-side geocoded "${req.body.location}" via "${searchStr}" to:`, coordinates);
+            break;
           }
-        );
-        if (geoRes.data && geoRes.data.length > 0) {
-          coordinates = {
-            latitude: Number(geoRes.data[0].lat),
-            longitude: Number(geoRes.data[0].lon)
-          };
-          console.log(`Server-side geocoded "${req.body.location}" to:`, coordinates);
+        } catch (geoErr) {
+          console.error(`Server-side geocoding failed for "${searchStr}":`, geoErr.message);
         }
-      } catch (geoErr) {
-        console.error("Server-side geocoding failed:", geoErr.message);
       }
     }
 
