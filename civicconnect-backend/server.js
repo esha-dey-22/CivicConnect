@@ -111,6 +111,30 @@ app.post("/report", upload.single("image"), async (req, res) => {
       }
     }
 
+    // Server-side forward geocoding fallback for manual text location entries
+    if ((coordinates.latitude === 0 && coordinates.longitude === 0) && req.body.location) {
+      try {
+        const geoRes = await axios.get(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(req.body.location)}`,
+          {
+            headers: {
+              "User-Agent": "CivicConnect/1.0"
+            },
+            timeout: 4000
+          }
+        );
+        if (geoRes.data && geoRes.data.length > 0) {
+          coordinates = {
+            latitude: Number(geoRes.data[0].lat),
+            longitude: Number(geoRes.data[0].lon)
+          };
+          console.log(`Server-side geocoded "${req.body.location}" to:`, coordinates);
+        }
+      } catch (geoErr) {
+        console.error("Server-side geocoding failed:", geoErr.message);
+      }
+    }
+
     const issue = new Issue({
       title: req.body.title,
       description: description,
