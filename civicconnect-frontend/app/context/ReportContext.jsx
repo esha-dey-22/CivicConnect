@@ -99,6 +99,44 @@ const normalizeReport = (report, fallbackIndex = 0) => {
   };
 };
 
+const prioritizeReports = (baseReports) => {
+  const neighborhoodCategoryCounts = {};
+
+  baseReports.forEach((report) => {
+    if (report.coordinates) {
+      const latBucket = report.coordinates.latitude.toFixed(2);
+      const lonBucket = report.coordinates.longitude.toFixed(2);
+      const category = (report.category || "General").trim().toLowerCase();
+      const key = `${latBucket},${lonBucket}:${category}`;
+      neighborhoodCategoryCounts[key] = (neighborhoodCategoryCounts[key] || 0) + 1;
+    }
+  });
+
+  return baseReports.map((report) => {
+    let priority = "Low";
+    if (report.coordinates) {
+      const latBucket = report.coordinates.latitude.toFixed(2);
+      const lonBucket = report.coordinates.longitude.toFixed(2);
+      const category = (report.category || "General").trim().toLowerCase();
+      const key = `${latBucket},${lonBucket}:${category}`;
+      const count = neighborhoodCategoryCounts[key] || 0;
+
+      if (count >= 5) {
+        priority = "High";
+      } else if (count >= 2) {
+        priority = "Medium";
+      }
+    } else {
+      priority = "Medium";
+    }
+
+    return {
+      ...report,
+      priority,
+    };
+  });
+};
+
 const readStoredReports = () => {
   if (typeof window === "undefined") {
     return [];
@@ -139,7 +177,8 @@ export const ReportProvider = ({ children }) => {
     try {
       const response = await fetch("/api/issues");
       const rawReports = await response.json();
-      const normalized = rawReports.map((report, index) => normalizeReport(report, index));
+      const baseReports = rawReports.map((report, index) => normalizeReport(report, index));
+      const normalized = prioritizeReports(baseReports);
 
       setReports(normalized);
     } catch (error) {
