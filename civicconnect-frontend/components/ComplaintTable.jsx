@@ -16,17 +16,25 @@ export default function ComplaintTable({
 	const { sendNotification } = useReport();
 	const [notifyComplaint, setNotifyComplaint] = useState(null);
 	const [notificationMessage, setNotificationMessage] = useState("");
+	const [manualEmail, setManualEmail] = useState("");
 	const [sending, setSending] = useState(false);
 
 	const handleSendNotification = async () => {
 		if (!notifyComplaint || !notificationMessage.trim()) return;
+		const recipient = (notifyComplaint.reporterEmail || manualEmail).trim();
+
+		if (!recipient) {
+			alert("Recipient email is required.");
+			return;
+		}
 
 		setSending(true);
 		try {
-			await sendNotification(notificationMessage, notifyComplaint.reporterEmail);
-			alert(`Notification sent successfully to ${notifyComplaint.reporterEmail}`);
+			await sendNotification(notificationMessage, recipient);
+			alert(`Notification sent successfully to ${recipient}`);
 			setNotifyComplaint(null);
 			setNotificationMessage("");
+			setManualEmail("");
 		} catch (err) {
 			alert("Failed to send notification.");
 		} finally {
@@ -114,19 +122,18 @@ export default function ComplaintTable({
 														</option>
 													))}
 												</select>
-												{complaint.reporterEmail && (
-													<button
-														type="button"
-														onClick={() => {
-															setNotifyComplaint(complaint);
-															setNotificationMessage(`Regarding your complaint "${complaint.title}": `);
-														}}
-														className="rounded-xl border border-sky-500/20 bg-sky-500/10 p-2 text-sky-400 hover:bg-sky-500/20 active:scale-95 transition"
-														title="Notify Citizen"
-													>
-														<Bell size={16} />
-													</button>
-												)}
+												<button
+													type="button"
+													onClick={() => {
+														setNotifyComplaint(complaint);
+														setManualEmail("");
+														setNotificationMessage(`Regarding your complaint "${complaint.title}": `);
+													}}
+													className="rounded-xl border border-sky-500/20 bg-sky-500/10 p-2 text-sky-400 hover:bg-sky-500/20 active:scale-95 transition"
+													title="Notify Citizen"
+												>
+													<Bell size={16} />
+												</button>
 											</div>
 										) : (
 											<span
@@ -161,10 +168,24 @@ export default function ComplaintTable({
 								Notify Citizen
 							</h3>
 						</div>
-						<p className="mt-3 text-xs text-[var(--admin-muted)] leading-relaxed">
-							Send a portal notification and an automated email to:<br />
-							<span className="font-semibold text-sky-400">{notifyComplaint.reporterEmail}</span>
-						</p>
+						
+						{notifyComplaint.reporterEmail ? (
+							<p className="mt-3 text-xs text-[var(--admin-muted)] leading-relaxed">
+								Send a portal notification and an automated email to:<br />
+								<span className="font-semibold text-sky-400">{notifyComplaint.reporterEmail}</span>
+							</p>
+						) : (
+							<div className="mt-4">
+								<label className="text-xs text-[var(--admin-muted)] uppercase tracking-wider font-semibold">Recipient Email Address:</label>
+								<input
+									type="email"
+									value={manualEmail}
+									onChange={(e) => setManualEmail(e.target.value)}
+									placeholder="e.g. citizen@example.com"
+									className="mt-1 w-full rounded-2xl border border-[var(--admin-border)] bg-black/20 p-2.5 text-xs text-[var(--admin-text)] outline-none focus:border-sky-400/50"
+								/>
+							</div>
+						)}
 
 						<textarea
 							value={notificationMessage}
@@ -177,7 +198,10 @@ export default function ComplaintTable({
 						<div className="mt-6 flex justify-end gap-3">
 							<button
 								type="button"
-								onClick={() => setNotifyComplaint(null)}
+								onClick={() => {
+									setNotifyComplaint(null);
+									setManualEmail("");
+								}}
 								className="rounded-2xl border border-[var(--admin-border)] bg-white/5 px-4 py-2.5 text-xs font-bold text-[var(--admin-text)] hover:bg-white/10"
 							>
 								Cancel
@@ -185,7 +209,7 @@ export default function ComplaintTable({
 							<button
 								type="button"
 								onClick={handleSendNotification}
-								disabled={sending || !notificationMessage.trim()}
+								disabled={sending || !notificationMessage.trim() || (!notifyComplaint.reporterEmail && !manualEmail.trim())}
 								className="rounded-2xl bg-sky-500 px-5 py-2.5 text-xs font-bold text-slate-950 hover:bg-sky-400 active:scale-95 transition disabled:opacity-50"
 							>
 								{sending ? "Sending..." : "Send Update"}

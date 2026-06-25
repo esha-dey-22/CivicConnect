@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useReport } from "../app/context/ReportContext";
+import { useUser } from "@clerk/nextjs";
 
 const LANGUAGE_OPTIONS = [
   { value: "en", label: "English" },
@@ -162,6 +163,7 @@ const translateTextTree = async (targetLanguage) => {
 
 export default function ReportForm({ redirectOnSubmit = true }) {
   const { addReport } = useReport();
+  const { user } = useUser();
   const router = useRouter();
   const translationCacheRef = useRef(new Map([["en", BASE_TRANSLATION]]));
 
@@ -431,6 +433,7 @@ export default function ReportForm({ redirectOnSubmit = true }) {
       voiceTranscript,
       category: category === "Other" ? otherCategory : category,
       file: selectedImage,
+      reporterEmail: user?.primaryEmailAddress?.emailAddress || "",
     });
 
     if (!submission?.success) {
