@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+vaderSentiment
+scikit-learn
+requests
+scipy
