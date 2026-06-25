@@ -44,6 +44,7 @@ export default function Dashboard() {
   const { reports, refetchReports, reportsLoading, notifications } = useReport();
 
   const [activeToast, setActiveToast] = useState(null);
+  const [initialChecked, setInitialChecked] = useState(false);
 
   // Auto-toast pop-up logic for new notifications
   useEffect(() => {
@@ -56,10 +57,17 @@ export default function Dashboard() {
         n.recipientEmail.trim().toLowerCase() === userEmail.trim().toLowerCase()
     );
 
-    if (userNotifications.length === 0) return;
-
     const seenRaw = localStorage.getItem("civicconnect_seen_notifications");
     const seenIds = seenRaw ? JSON.parse(seenRaw) : [];
+
+    if (!initialChecked) {
+      // Mark all existing notifications as seen on first load
+      const allExistingIds = userNotifications.map((n) => n._id || n.id).filter(Boolean);
+      const updatedSeenIds = [...new Set([...seenIds, ...allExistingIds])];
+      localStorage.setItem("civicconnect_seen_notifications", JSON.stringify(updatedSeenIds));
+      setInitialChecked(true);
+      return;
+    }
 
     const unseen = userNotifications.find((n) => !seenIds.includes(n._id || n.id));
 
@@ -68,7 +76,7 @@ export default function Dashboard() {
       seenIds.push(unseen._id || unseen.id);
       localStorage.setItem("civicconnect_seen_notifications", JSON.stringify(seenIds));
     }
-  }, [notifications, user]);
+  }, [notifications, user, initialChecked]);
 
   const pending = reports.filter((report) => report.status === "Pending").length;
   const processing = reports.filter((report) => report.status === "Under Process").length;

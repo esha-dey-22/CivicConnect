@@ -217,6 +217,13 @@ export const ReportProvider = ({ children }) => {
   useEffect(() => {
     fetchReports();
     fetchNotifications();
+
+    const interval = setInterval(() => {
+      fetchReports();
+      fetchNotifications();
+    }, 8000);
+
+    return () => clearInterval(interval);
   }, [fetchReports, fetchNotifications]);
 
   const addReport = useCallback(async (report) => {
