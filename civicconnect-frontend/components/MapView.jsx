@@ -212,21 +212,20 @@ export default function MapView({ reports = [] }) {
       );
     }
 
-    const groupedReports = groupReportsByArea(scopedReports);
+    scopedReports.forEach((report) => {
+      const color = getPriorityColor(report.priority);
 
-    groupedReports.forEach((group) => {
-      const count = group.reports.length;
-      const color = markerColorOverride || getDensityColor(count);
-
-      L.marker([group.latitude, group.longitude], {
-        icon: createDensityIcon(color),
+      L.marker([report.coordinates.latitude, report.coordinates.longitude], {
+        icon: createPulseIcon(color),
       })
         .addTo(complaintLayerRef.current)
         .bindPopup(
-          `<div style="min-width:220px; color:#0f172a; font-family:Arial,sans-serif;">
-            <strong>Area complaints: ${count}</strong><br />
-            <span>Priority filter: ${selectedPriority}</span><br />
-            <span>${selectedPriority === "All" ? "High density: Red, Medium: Yellow, Low (&lt;8): Blue" : "Priority colors: High Red, Medium Yellow, Low Blue"}</span>
+          `<div style="min-width:200px; color:#0f172a; font-family:Arial,sans-serif;">
+            <strong style="font-size: 14px;">${report.title || "Complaint"}</strong><br />
+            <span style="font-size: 12px; font-weight: bold; color: ${color};">Priority: ${report.priority || "Medium"}</span><br />
+            <span style="font-size: 12px;">Category: ${report.category || "General"}</span><br />
+            <span style="font-size: 12px;">Location: ${report.location || "Unknown"}</span><br />
+            <span style="font-size: 11px; color:#64748b;">${report.createdAt ? new Date(report.createdAt).toLocaleString() : ""}</span>
           </div>`
         );
     });
@@ -420,9 +419,9 @@ export default function MapView({ reports = [] }) {
       )}
 
       <div className="flex flex-wrap items-center gap-4 text-xs text-slate-300">
-        <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-red-500" />High density</span>
-        <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-yellow-400" />Medium density</span>
-        <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-blue-500" />Low density (&lt; 8)</span>
+        <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-red-500" />High priority</span>
+        <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-yellow-400" />Medium priority</span>
+        <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-blue-500" />Low priority</span>
       </div>
 
       {/* Premium Map Container */}

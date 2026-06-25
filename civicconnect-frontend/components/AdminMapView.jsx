@@ -222,40 +222,26 @@ export default function AdminMapView({ reports = [] }) {
       }
     }
 
-    const groupedMarkers = groupReportsByArea(scopedMarkers);
-
-    if (!searchedArea) {
-      setAreaSummary(`Showing ${scopedMarkers.length} complaints across all mapped areas.`);
-    }
-
-    if (groupedMarkers.length === 0) {
-      if (!searchedArea) {
-        mapInstanceRef.current.setView(DEFAULT_CENTER, 5);
-      }
-      return;
-    }
-
     const bounds = [];
 
-    groupedMarkers.forEach((group, index) => {
-      const count = group.reports.length;
-      const markerColor = markerColorOverride || getDensityColor(count);
-      const priorityMix = [...new Set(group.reports.map((item) => item.priority))].join(", ");
+    scopedMarkers.forEach((marker) => {
+      const markerColor = getPriorityColor(marker.priority);
 
-      const leafletMarker = L.marker([group.latitude, group.longitude], {
+      const leafletMarker = L.marker([marker.latitude, marker.longitude], {
         icon: createMarkerIcon(markerColor),
       })
         .bindPopup(
-          `<div style="min-width: 200px; color: #0f172a; font-family: Arial, sans-serif;">
-            <strong>${index + 1}. Area complaints: ${count}</strong><br />
-            <span>${selectedPriority === "All" ? "Density scale: Red high, Yellow medium, Blue low (&lt;8)" : "Priority colors: High Red, Medium Yellow, Low Blue"}</span><br />
-            <span>Priority mix: ${priorityMix || "Medium"}</span>
+          `<div style="min-width: 220px; color: #0f172a; font-family: Arial, sans-serif;">
+            <strong style="font-size: 14px;">${marker.title || "Complaint"}</strong><br />
+            <span style="font-size: 12px; font-weight: bold; color: ${markerColor};">Priority: ${marker.priority || "Medium"}</span><br />
+            <span style="font-size: 12px; font-weight: 500;">Status: ${marker.status || "reported"}</span><br />
+            <span style="font-size: 12px;">Category: ${marker.category || "General"}</span><br />
+            <span style="font-size: 12px; color: #64748b;">Location: ${marker.location || "Unknown"}</span>
           </div>`
         )
         .addTo(markerLayerRef.current);
 
-      bounds.push([group.latitude, group.longitude]);
-      return leafletMarker;
+      bounds.push([marker.latitude, marker.longitude]);
     });
 
     if (bounds.length > 0) {
@@ -359,9 +345,9 @@ export default function AdminMapView({ reports = [] }) {
       {areaSummary ? <p className="text-sm text-[var(--admin-muted)]">{areaSummary}</p> : null}
 
       <div className="flex flex-wrap items-center gap-4 text-xs text-[var(--admin-muted)]">
-        <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-red-500" />High density</span>
-        <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-yellow-400" />Medium density</span>
-        <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-blue-500" />Low density (&lt; 8)</span>
+        <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-red-500" />High priority</span>
+        <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-yellow-400" />Medium priority</span>
+        <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-blue-500" />Low priority</span>
       </div>
 
       <div className="overflow-hidden rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-panel-soft)] shadow-2xl shadow-black/10">
