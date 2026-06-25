@@ -101,6 +101,19 @@ const normalizeReport = (report, fallbackIndex = 0) => {
 
 const prioritizeReports = (baseReports) => {
   const neighborhoodCategoryCounts = {};
+  const totalComplaints = baseReports.length;
+
+  // Dynamic threshold scaling:
+  // Base thresholds: Medium = 2, High = 5.
+  // Reference database size is 20 complaints. As the database grows beyond 20,
+  // we scale the thresholds using a sub-linear square root multiplier to avoid too fast growth.
+  const multiplier = totalComplaints > 20 ? Math.sqrt(totalComplaints / 20) : 1;
+  const mediumThreshold = Math.max(2, Math.ceil(2 * multiplier));
+  const highThreshold = Math.max(5, Math.ceil(5 * multiplier));
+
+  console.log(
+    `[Priority Engine] Total complaints: ${totalComplaints}. Dynamic thresholds -> Medium: >=${mediumThreshold}, High: >=${highThreshold}`
+  );
 
   baseReports.forEach((report) => {
     if (report.coordinates) {
@@ -121,9 +134,9 @@ const prioritizeReports = (baseReports) => {
       const key = `${latBucket},${lonBucket}:${category}`;
       const count = neighborhoodCategoryCounts[key] || 0;
 
-      if (count >= 5) {
+      if (count >= highThreshold) {
         priority = "High";
-      } else if (count >= 2) {
+      } else if (count >= mediumThreshold) {
         priority = "Medium";
       }
     } else {
