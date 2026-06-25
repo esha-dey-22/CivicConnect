@@ -1,3 +1,9 @@
+"use client";
+
+import { useState } from "react";
+import { Bell } from "lucide-react";
+import { useReport } from "../app/context/ReportContext";
+
 const STATUS_LABELS = ["Filed", "Pending", "Under Process", "Resolved"];
 
 export default function ComplaintTable({
@@ -7,6 +13,27 @@ export default function ComplaintTable({
 	compact = false,
 	emptyMessage = "No complaints available.",
 }) {
+	const { sendNotification } = useReport();
+	const [notifyComplaint, setNotifyComplaint] = useState(null);
+	const [notificationMessage, setNotificationMessage] = useState("");
+	const [sending, setSending] = useState(false);
+
+	const handleSendNotification = async () => {
+		if (!notifyComplaint || !notificationMessage.trim()) return;
+
+		setSending(true);
+		try {
+			await sendNotification(notificationMessage, notifyComplaint.reporterEmail);
+			alert(`Notification sent successfully to ${notifyComplaint.reporterEmail}`);
+			setNotifyComplaint(null);
+			setNotificationMessage("");
+		} catch (err) {
+			alert("Failed to send notification.");
+		} finally {
+			setSending(false);
+		}
+	};
+
 	if (complaints.length === 0) {
 		return (
 			<div className="rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-panel-soft)] px-6 py-12 text-center text-sm text-[var(--admin-muted)]">
@@ -16,7 +43,7 @@ export default function ComplaintTable({
 	}
 
 	return (
-		<div className="overflow-hidden rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-panel-soft)]">
+		<div className="relative overflow-hidden rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-panel-soft)]">
 			<div className="overflow-x-auto">
 				<table className="min-w-full divide-y divide-[var(--admin-border)] text-left text-sm">
 					<thead className="bg-black/10 text-[var(--admin-muted)] uppercase tracking-[0.18em]">
@@ -75,17 +102,32 @@ export default function ComplaintTable({
 									</td>
 									<td className="px-5 py-4">
 										{editable ? (
-											<select
-												value={currentStatus}
-												onChange={(event) => onStatusChange?.(complaint.id, event.target.value)}
-												className="w-full rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 py-2 text-sm text-[var(--admin-text)] outline-none transition focus:border-sky-400/50"
-											>
-												{allowedStatuses.map((status) => (
-													<option key={status} value={status}>
-														{status}
-													</option>
-												))}
-											</select>
+											<div className="flex items-center gap-2">
+												<select
+													value={currentStatus}
+													onChange={(event) => onStatusChange?.(complaint.id, event.target.value)}
+													className="flex-1 min-w-[120px] rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 py-2 text-sm text-[var(--admin-text)] outline-none transition focus:border-sky-400/50"
+												>
+													{allowedStatuses.map((status) => (
+														<option key={status} value={status}>
+															{status}
+														</option>
+													))}
+												</select>
+												{complaint.reporterEmail && (
+													<button
+														type="button"
+														onClick={() => {
+															setNotifyComplaint(complaint);
+															setNotificationMessage(`Regarding your complaint "${complaint.title}": `);
+														}}
+														className="rounded-xl border border-sky-500/20 bg-sky-500/10 p-2 text-sky-400 hover:bg-sky-500/20 active:scale-95 transition"
+														title="Notify Citizen"
+													>
+														<Bell size={16} />
+													</button>
+												)}
+											</div>
 										) : (
 											<span
 												className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
@@ -106,6 +148,52 @@ export default function ComplaintTable({
 					</tbody>
 				</table>
 			</div>
+
+			{/* Notify Modal Overlay */}
+			{notifyComplaint && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+					<div className="w-full max-w-md rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-panel)] p-6 shadow-2xl">
+						<div className="flex items-center gap-3">
+							<div className="rounded-xl bg-sky-500/15 p-2 text-sky-400">
+								<Bell size={20} />
+							</div>
+							<h3 className="text-lg font-bold text-[var(--admin-text)]">
+								Notify Citizen
+							</h3>
+						</div>
+						<p className="mt-3 text-xs text-[var(--admin-muted)] leading-relaxed">
+							Send a portal notification and an automated email to:<br />
+							<span className="font-semibold text-sky-400">{notifyComplaint.reporterEmail}</span>
+						</p>
+
+						<textarea
+							value={notificationMessage}
+							onChange={(e) => setNotificationMessage(e.target.value)}
+							placeholder="Type your update message here..."
+							rows={4}
+							className="mt-4 w-full rounded-2xl border border-[var(--admin-border)] bg-black/20 p-3 text-sm text-[var(--admin-text)] outline-none focus:border-sky-400/50 placeholder-gray-500"
+						/>
+
+						<div className="mt-6 flex justify-end gap-3">
+							<button
+								type="button"
+								onClick={() => setNotifyComplaint(null)}
+								className="rounded-2xl border border-[var(--admin-border)] bg-white/5 px-4 py-2.5 text-xs font-bold text-[var(--admin-text)] hover:bg-white/10"
+							>
+								Cancel
+							</button>
+							<button
+								type="button"
+								onClick={handleSendNotification}
+								disabled={sending || !notificationMessage.trim()}
+								className="rounded-2xl bg-sky-500 px-5 py-2.5 text-xs font-bold text-slate-950 hover:bg-sky-400 active:scale-95 transition disabled:opacity-50"
+							>
+								{sending ? "Sending..." : "Send Update"}
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

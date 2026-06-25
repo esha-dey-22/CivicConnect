@@ -26,7 +26,8 @@ import {
   CheckCircle2, 
   AlertTriangle, 
   Activity, 
-  Tag 
+  Tag,
+  Bell
 } from "lucide-react";
 import ReportForm from "../../components/ReportForm";
 import ComplaintsRegistry from "../../components/ComplaintsRegistry";
@@ -40,7 +41,34 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("report");
   const router = useRouter();
   const { isLoaded, isSignedIn, user } = useUser();
-  const { reports, refetchReports, reportsLoading } = useReport();
+  const { reports, refetchReports, reportsLoading, notifications } = useReport();
+
+  const [activeToast, setActiveToast] = useState(null);
+
+  // Auto-toast pop-up logic for new notifications
+  useEffect(() => {
+    const userEmail = user?.primaryEmailAddress?.emailAddress;
+    if (!userEmail || !notifications || !notifications.length) return;
+
+    const userNotifications = notifications.filter(
+      (n) =>
+        !n.recipientEmail ||
+        n.recipientEmail.trim().toLowerCase() === userEmail.trim().toLowerCase()
+    );
+
+    if (userNotifications.length === 0) return;
+
+    const seenRaw = localStorage.getItem("civicconnect_seen_notifications");
+    const seenIds = seenRaw ? JSON.parse(seenRaw) : [];
+
+    const unseen = userNotifications.find((n) => !seenIds.includes(n._id || n.id));
+
+    if (unseen) {
+      setActiveToast(unseen);
+      seenIds.push(unseen._id || unseen.id);
+      localStorage.setItem("civicconnect_seen_notifications", JSON.stringify(seenIds));
+    }
+  }, [notifications, user]);
 
   const pending = reports.filter((report) => report.status === "Pending").length;
   const processing = reports.filter((report) => report.status === "Under Process").length;
@@ -345,6 +373,37 @@ export default function Dashboard() {
           {reports.length === 0 ? (
             <p className="text-sm text-slate-500 text-center">No complaints filed yet. Populate the system to see full insights.</p>
           ) : null}
+        </div>
+      )}
+
+      {/* Dynamic Notification Toast Pop-Up */}
+      {activeToast && (
+        <div className="fixed bottom-6 right-6 z-[999] max-w-sm rounded-2xl border border-cyan-400/30 bg-slate-900/90 p-4 shadow-2xl backdrop-blur-md transition-all duration-500 animate-slide-in">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl bg-cyan-500/20 p-2 text-cyan-400">
+              <Bell className="h-5 w-5 animate-bounce" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">
+                  New Update
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setActiveToast(null)}
+                  className="rounded-lg p-1 text-slate-400 hover:bg-white/5 hover:text-white"
+                >
+                  &times;
+                </button>
+              </div>
+              <p className="mt-1 text-sm font-medium text-white leading-relaxed">
+                {activeToast.message}
+              </p>
+              <p className="mt-2 text-[10px] text-slate-400">
+                {new Date(activeToast.createdAt).toLocaleString()}
+              </p>
+            </div>
+          </div>
         </div>
       )}
 

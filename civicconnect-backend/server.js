@@ -230,16 +230,28 @@ app.put("/issues/:id", isAdmin, async (req, res) => {
       { new: true }
     );
 
-    // Send physical email asynchronously in the background
-    if (req.body.status === "Resolved" && updatedIssue.reporterEmail && transporter) {
-      transporter.sendMail({
-        from: `"CivicConnect Admin" <${process.env.EMAIL_USER}>`,
-        to: updatedIssue.reporterEmail,
-        subject: "Your Complaint has been Resolved!",
-        text: `Great news! Your reported issue "${updatedIssue.title}" has been successfully resolved by our team.`
-      })
-      .then(() => console.log("Email sent to: %s", updatedIssue.reporterEmail))
-      .catch((emailErr) => console.error("Failed to send email:", emailErr));
+    // Save notification in database and send email for status updates
+    if (updatedIssue.reporterEmail) {
+      const statusMessage = `The status of your complaint "${updatedIssue.title}" has been updated to "${req.body.status}".`;
+      
+      // Save in MongoDB for user portal pop-up
+      const dbNotification = new Notification({
+        message: statusMessage,
+        recipientEmail: updatedIssue.reporterEmail
+      });
+      await dbNotification.save().catch((dbErr) => console.error("Failed to save status update notification:", dbErr));
+
+      // Send email notification
+      if (transporter) {
+        transporter.sendMail({
+          from: `"CivicConnect Admin" <${process.env.EMAIL_USER}>`,
+          to: updatedIssue.reporterEmail,
+          subject: `Complaint Status Updated: ${req.body.status}`,
+          text: statusMessage
+        })
+        .then(() => console.log("Status update email sent to: %s", updatedIssue.reporterEmail))
+        .catch((emailErr) => console.error("Failed to send status update email:", emailErr));
+      }
     }
 
     res.json(updatedIssue);
