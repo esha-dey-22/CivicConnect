@@ -1,6 +1,13 @@
 # CivicConnect: Enterprise Civic Issue Resolution & Management Platform
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-blue?style=for-the-badge&logo=vercel)](https://civicconnect-plum.vercel.app)
+
 CivicConnect is an enterprise-grade, microservice-based application suite designed to streamline municipal complaint reporting, geospatial issue analysis, and citizen-administration communication. By integrating predictive Natural Language Processing (NLP) and vector-similarity duplicate detection, CivicConnect enables local administrations to automatically intake, prioritize, and resolve citizen incidents.
+
+### 🌐 Live Production Deployment
+* **Client Interface (Vercel)**: [https://civicconnect-plum.vercel.app](https://civicconnect-plum.vercel.app)
+* **Core API Gateway (Render)**: `https://civicconnect-backend.onrender.com`
+* **Predictive AI Core (Render)**: `https://civicconnect-ai.onrender.com`
 
 ---
 
