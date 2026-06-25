@@ -407,7 +407,7 @@ export default function Dashboard() {
               <p className="mt-1 text-sm font-medium text-white leading-relaxed">
                 {activeToast.message}
               </p>
-              <p className="mt-2 text-[10px] text-slate-400">
+              <p className="mt-2 text-[10px] text-slate-400" suppressHydrationWarning>
                 {new Date(activeToast.createdAt).toLocaleString()}
               </p>
             </div>

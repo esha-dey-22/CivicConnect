@@ -67,7 +67,7 @@ export default function AdminNotificationsPage() {
                   {notification.recipientEmail ? `To: ${notification.recipientEmail}` : "To: All users"}
                 </p>
                 <p className="text-sm text-[var(--admin-text)]">{notification.message}</p>
-                <p className="mt-1 text-xs text-[var(--admin-muted)]">
+                <p className="mt-1 text-xs text-[var(--admin-muted)]" suppressHydrationWarning>
                   {new Date(notification.createdAt).toLocaleString()}
                 </p>
               </div>

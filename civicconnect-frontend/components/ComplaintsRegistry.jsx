@@ -123,7 +123,7 @@ export default function ComplaintsRegistry() {
                   {notification.recipientEmail ? `To: ${notification.recipientEmail}` : "To: All users"}
                 </p>
                 <p className="text-sm text-slate-200">{notification.message}</p>
-                <p className="mt-1 text-xs text-slate-500">{new Date(notification.createdAt).toLocaleString()}</p>
+                <p className="mt-1 text-xs text-slate-500" suppressHydrationWarning>{new Date(notification.createdAt).toLocaleString()}</p>
               </div>
             ))
           )}

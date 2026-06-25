@@ -105,7 +105,7 @@ export default function ComplaintTable({
 										{complaint.description}
 									</td>
 									<td className="px-5 py-4 text-[var(--admin-muted)]">{complaint.category || "General"}</td>
-									<td className="px-5 py-4 text-[var(--admin-muted)]">
+									<td className="px-5 py-4 text-[var(--admin-muted)]" suppressHydrationWarning>
 										{complaint.createdAt ? new Date(complaint.createdAt).toLocaleString() : "Unknown"}
 									</td>
 									<td className="px-5 py-4">
