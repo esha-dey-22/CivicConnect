@@ -4,6 +4,7 @@ export const ADMIN_EMAILS = [
   "admin@civicconnect.gov",
   "ops@civicconnect.gov",
   "commissioner@civicconnect.gov",
+  "riahaldar52@gmail.com",
 ];
 
 export const ADMIN_MENU = [
