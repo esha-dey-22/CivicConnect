@@ -1,79 +1,137 @@
-# CivicConnect: AI-Powered Civic Issue Management System
+# CivicConnect: Enterprise Civic Issue Resolution & Management Platform
 
-CivicConnect is a modern, dark-themed platform designed to empower communities by streamlining the reporting and management of civic issues. It leverages AI to provide sentiment analysis and duplicate detection, ensuring that government administrators can prioritize and resolve citizen concerns efficiently.
+CivicConnect is an enterprise-grade, microservice-based application suite designed to streamline municipal complaint reporting, geospatial issue analysis, and citizen-administration communication. By integrating predictive Natural Language Processing (NLP) and vector-similarity duplicate detection, CivicConnect enables local administrations to automatically intake, prioritize, and resolve citizen incidents.
 
-## 🚀 Key Features
+---
 
-### 🏛️ For Citizens
-*   **Easy Reporting**: Submit issues with descriptions, categories, and photo uploads.
-*   **GPS Tracking**: Automatic location capture for accurate issue mapping.
-*   **Live Registry**: Track the status of all reported issues in real-time.
-*   **AI Chatbot**: Intelligent assistant for answering civic-related questions.
+## 🏗️ System Architecture
 
-### 🛡️ For Admins
-*   **Issue Management**: Update status (Pending, Resolved, etc.) with automated email notifications.
-*   **Map Monitoring**: Interactive map with density markers showing high-priority areas.
-*   **Advanced Analytics**: Visual charts for category distribution and issue trends.
-*   **Smart Notifications**: Push announcements directly to the public registry.
+The platform is structured as a decoupled multi-tier architecture consisting of a Next.js single-page application client, an Express API gateway, a FastAPI analytical service, and a MongoDB persistence layer.
 
-### 🧠 AI Capabilities
-*   **Sentiment Analysis**: Automatically classifies the tone of complaints (Positive/Negative/Neutral) using NLP.
-*   **Duplicate Detection**: Uses TF-IDF and Cosine Similarity to identify redundant reports and prevent spam.
+```mermaid
+graph TD
+    subgraph Client Tier [Client Tier]
+        Browser[Next.js Client Application]
+        Clerk[Clerk Federated Identity provider]
+    end
+
+    subgraph Application Tier [API & Orchestration Tier]
+        API[Express API Gateway]
+        FastAPI[FastAPI NLP Service]
+    end
+
+    subgraph Storage Tier [Persistence Tier]
+        MongoDB[(MongoDB Database)]
+    end
+
+    Browser -->|Federated Auth| Clerk
+    Browser -->|GraphQL/HTTPS Requests| API
+    API -->|Async Event Queue / Webhooks| FastAPI
+    API -->|Transactional Queries| MongoDB
+    API -->|Nodemailer SMTP| EmailClient[Citizen Email Client]
+```
+
+---
+
+## 💡 Core Functional Modules
+
+### 1. Citizen Portal & Intake
+* **Intelligent Intake Form**: Fully responsive dashboard supporting dynamic field mapping, categorization, and multimedia (image) attachment uploading.
+* **Automatic Geolocation Resolution**: Real-time GPS coordinate triangulation with fallback query-string geocoding for manual addresses.
+* **Incident Lifecycle Monitor**: Public complaints registry featuring direct live-reload capability and visual status logs (Pending, Under Process, Resolved).
+* **Intelligent Support Chatbot**: Conversational AI assistant trained to answer civic-related inquiries and guide users through reporting workflows.
+
+### 2. Administrative Console
+* **Intelligent Backlog Management**: Unified ticket table enabling status updates, direct email dispatch, and severity overrides.
+* **Dynamic Priority Orchestration**: Automatic calculation of issue urgency (High, Medium, Low) using location density thresholds. These thresholds scale sub-linearly ($\text{threshold} = \max(\text{Base}, \text{ceil}(\text{Base} \times \sqrt{N/20}))$) as overall platform density grows.
+* **Live Geospatial Console**: Heatmaps and priority-colored map pins (Red/Yellow/Blue) with auto-centering bounds zoom to identify infrastructure hot spots.
+* **Executive Analytics Panel**: Interactive KPI metrics (Backlog Counts, Unresolved Severity, Resolution Rates) and multi-chart reporting (Breakdowns by Category and Status).
+
+### 3. Predictive AI Microservices
+* **Sentiment Classification**: Real-time VADER Sentiment Analysis to classify complaint descriptions into Positive, Negative, or Neutral tones.
+* **Intelligent Deduplication**: TF-IDF (Term Frequency-Inverse Document Frequency) vectorization combined with Cosine Similarity checking to identify duplicate filings and prevent database spam.
 
 ---
 
 ## 🛠️ Technology Stack
 
-*   **Frontend**: Next.js 15, React, Tailwind CSS, Clerk (Auth), Lucide Icons.
-*   **Backend**: Node.js, Express, MongoDB, Mongoose, Nodemailer.
-*   **AI Service**: Python, FastAPI, VADER Sentiment, Scikit-learn.
-*   **Chatbot**: n8n AI Integration.
+| Layer | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Frontend** | React, Next.js 15+, Tailwind CSS, Clerk, Lucide React, Recharts | UI Shell, Session State, Visualization |
+| **Backend** | Node.js, Express, Nodemailer, Axios | Core API Gateway, Mailer, Middleware |
+| **AI Engine** | Python 3.10+, FastAPI, Scikit-Learn, VADER, SciPy | Natural Language Processing, Vector Calculations |
+| **Database** | MongoDB Atlas, Mongoose ODM | Document Store, Dynamic Schemas |
 
 ---
 
-## ⚙️ Installation & Setup
+## ⚙️ Configuration & Environment Setup
 
-### 1. Prerequisites
-*   Node.js (v18+)
-*   Python (v3.9+)
-*   MongoDB Atlas Account
-*   Clerk Account
+### Environment Variables Matrix
 
-### 2. Backend Setup (`/civicconnect-backend`)
-1. Create a `.env` file:
-   ```env
-   PORT=5000
-   MONGO_URI=your_mongodb_connection_string
-   EMAIL_USER=your_gmail@gmail.com
-   EMAIL_PASS=your_gmail_app_password
-   ```
-2. Install dependencies: `npm install`
-3. Run: `node server.js`
+To run the platform securely in local or production modes, configure the following variables:
 
-### 3. AI Service Setup (Root)
-1. Install dependencies: `pip install fastapi uvicorn vaderSentiment scikit-learn`
-2. Run: `uvicorn main:app --reload`
+#### Frontend (`/civicconnect-frontend/.env.local`)
+* `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`: Clerk client credentials.
+* `CLERK_SECRET_KEY`: Clerk server communication key.
+* `BACKEND_URL`: Hosted Express API gateway endpoint (e.g. `http://localhost:5001` or `https://backend.onrender.com`).
+* `ADMIN_API_KEY`: Authentication secret shared with the backend.
 
-### 4. Frontend Setup (`/civicconnect-frontend`)
-1. Create a `.env.local` file:
-   ```env
-   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_key
-   CLERK_SECRET_KEY=your_clerk_secret
-   ```
-2. Install dependencies: `npm install`
-3. Run: `npm run dev`
+#### Backend (`/civicconnect-backend/.env`)
+* `MONGODB_URI`: MongoDB connection URI (Atlas string or local MongoDB instance).
+* `AI_URL`: Endpoint of the hosted Python AI Service (e.g. `http://localhost:8000` or `https://ai.onrender.com`).
+* `EMAIL_USER`: Mailbox address used to route automated notification emails.
+* `EMAIL_PASS`: Gmail App Password (16 characters) associated with the dispatcher mail.
+* `ADMIN_API_KEY`: Key used to authenticate incoming admin request payloads from Next.js.
+* `PORT`: Server listening port (defaulted to `5001` to bypass AirPlay port conflicts on macOS).
 
 ---
 
-## 📁 Project Structure
-```
-Project/
-├── civicconnect-frontend/   # Next.js Frontend
-├── civicconnect-backend/    # Node.js Express API
-└── main.py                  # Python AI Microservice
+## 🚀 Execution Instructions
+
+### Prerequisites
+* **Node.js** (v18.0.0 or higher)
+* **Python** (v3.9.0 or higher)
+* **MongoDB Community Server** (running locally on port 27017 or Atlas cloud instance)
+
+### 1. Execute the AI Microservice
+```bash
+# In the project root directory:
+pip install -r requirements.txt
+uvicorn main:app --host 127.0.0.1 --port 8000
 ```
 
+### 2. Execute the Express API Gateway
+```bash
+cd civicconnect-backend
+npm install
+node server.js
+```
+
+### 3. Execute the Next.js Client
+```bash
+cd civicconnect-frontend
+npm install
+npm run dev
+```
+
 ---
 
-## 📄 License
-This project is developed for civic empowerment. Feel free to contribute!
+## 📁 Repository Directory Structure
+
+```
+CivicConnect/
+├── civicconnect-frontend/       # Client Application
+│   ├── app/                     # Page Layouts, Context Providers & API Proxies
+│   ├── components/              # Interactive Leaflet Maps, Forms, Sidebars
+│   └── package.json
+│
+├── civicconnect-backend/        # Express API Server
+│   ├── models/                  # Mongoose MongoDB Data Schemas
+│   ├── db.js                    # Database Connection Handler
+│   ├── server.js                # Core API Routing & Mailing Controller
+│   └── package.json
+│
+├── main.py                      # FastAPI AI Services Core
+├── requirements.txt             # Python Package List
+└── README.md                    # System Documentation
+```
