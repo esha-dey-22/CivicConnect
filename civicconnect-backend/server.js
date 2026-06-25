@@ -72,7 +72,7 @@ app.get("/", (req, res) => {
 app.post("/report", upload.single("image"), async (req, res) => {
   try {
     const description = req.body.description || "";
-    const AI_URL = "http://127.0.0.1:8000";
+    const AI_URL = process.env.AI_URL || "http://127.0.0.1:8000";
     
     let sentiment = "Neutral";
     let ai_category = "";
@@ -317,7 +317,7 @@ app.post("/issues/:id/upvote", async (req, res) => {
 
 app.post("/chat", async (req, res) => {
   try {
-    const AI_URL = "http://127.0.0.1:8000";
+    const AI_URL = process.env.AI_URL || "http://127.0.0.1:8000";
     const chatRes = await axios.post(`${AI_URL}/api/chat`, { 
       message: req.body.message || "", 
       has_image: req.body.has_image || false 
