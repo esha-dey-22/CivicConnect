@@ -60,60 +60,31 @@ const getDensityLabel = (count) => {
   return "Low";
 };
 
-const createPulseIcon = (color) =>
-  L.divIcon({
-    className: "",
-    html: `
-      <div class="relative">
-        <div class="w-4 h-4 rounded-full" style="background:${color};"></div>
-        <div class="absolute inset-0 w-4 h-4 rounded-full animate-ping" style="background:${color}; opacity:0.45;"></div>
-      </div>
-    `,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10],
-  });
-
-const createDensityIcon = (color) =>
+const createMarkerIcon = (color) =>
   L.divIcon({
     className: "",
     html: `
       <div class="relative flex items-center justify-center">
-        <div class="h-5 w-5 rounded-full border border-white/50" style="background:${color};"></div>
-        <div class="absolute h-9 w-9 rounded-full animate-ping" style="background:${color}; opacity:0.2;"></div>
+        <div class="h-4 w-4 rounded-full" style="background:${color};"></div>
+        <div class="absolute h-8 w-8 rounded-full animate-ping" style="background:${color}; opacity:0.2;"></div>
       </div>
     `,
-    iconSize: [26, 26],
-    iconAnchor: [13, 13],
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
   });
 
-const groupReportsByArea = (reports) => {
-  const grouped = new Map();
-
-  reports.forEach((report) => {
-    const latitude = Number(report.coordinates?.latitude);
-    const longitude = Number(report.coordinates?.longitude);
-
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-      return;
-    }
-
-    const latBucket = Number(latitude.toFixed(2));
-    const lonBucket = Number(longitude.toFixed(2));
-    const key = `${latBucket},${lonBucket}`;
-
-    if (!grouped.has(key)) {
-      grouped.set(key, {
-        latitude: latBucket,
-        longitude: lonBucket,
-        reports: [],
-      });
-    }
-
-    grouped.get(key).reports.push(report);
+const createFocusIcon = (color = "#22c55e") =>
+  L.divIcon({
+    className: "",
+    html: `
+      <div class="relative flex items-center justify-center">
+        <div class="h-4 w-4 rounded-full" style="background:${color};"></div>
+        <div class="absolute h-8 w-8 rounded-full animate-ping" style="background:${color}; opacity:0.25;"></div>
+      </div>
+    `,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
   });
-
-  return Array.from(grouped.values());
-};
 
 export default function MapView({ reports = [] }) {
   const { refetchReports, reportsLoading } = useReport();
@@ -182,7 +153,7 @@ export default function MapView({ reports = [] }) {
       const areaDensityLabel = getDensityLabel(areaCount);
 
       if (focusMarkerRef.current) {
-        focusMarkerRef.current.setIcon(createPulseIcon(areaColor));
+        focusMarkerRef.current.setIcon(createFocusIcon(areaColor));
         focusMarkerRef.current.bindPopup(
           `<div style="min-width:220px; color:#0f172a; font-family:Arial,sans-serif;">
             <strong>${center.label || "Searched area"}</strong><br />
@@ -193,7 +164,7 @@ export default function MapView({ reports = [] }) {
         );
       } else {
         focusMarkerRef.current = L.marker([center.latitude, center.longitude], {
-          icon: createPulseIcon(areaColor),
+          icon: createFocusIcon(areaColor),
         })
           .addTo(leafletMap.current)
           .bindPopup(
@@ -212,23 +183,32 @@ export default function MapView({ reports = [] }) {
       );
     }
 
+    const bounds = [];
+
     scopedReports.forEach((report) => {
       const color = getPriorityColor(report.priority);
 
       L.marker([report.coordinates.latitude, report.coordinates.longitude], {
-        icon: createPulseIcon(color),
+        icon: createMarkerIcon(color),
       })
         .addTo(complaintLayerRef.current)
         .bindPopup(
           `<div style="min-width:200px; color:#0f172a; font-family:Arial,sans-serif;">
             <strong style="font-size: 14px;">${report.title || "Complaint"}</strong><br />
             <span style="font-size: 12px; font-weight: bold; color: ${color};">Priority: ${report.priority || "Medium"}</span><br />
+            <span style="font-size: 12px; font-weight: 500;">Status: ${report.status || "Filed"}</span><br />
             <span style="font-size: 12px;">Category: ${report.category || "General"}</span><br />
             <span style="font-size: 12px;">Location: ${report.location || "Unknown"}</span><br />
             <span style="font-size: 11px; color:#64748b;">${report.createdAt ? new Date(report.createdAt).toLocaleString() : ""}</span>
           </div>`
         );
+
+      bounds.push([report.coordinates.latitude, report.coordinates.longitude]);
     });
+
+    if (bounds.length > 0) {
+      leafletMap.current.fitBounds(bounds, { padding: [40, 40] });
+    }
 
     if (!center) {
       setAreaSummary(`Showing ${scopedReports.length} complaints across all mapped areas.`);
@@ -271,7 +251,11 @@ export default function MapView({ reports = [] }) {
 
     complaintLayerRef.current = L.layerGroup().addTo(leafletMap.current);
 
-    return () => leafletMap.current.remove();
+    return () => {
+      leafletMap.current?.remove();
+      leafletMap.current = null;
+      complaintLayerRef.current = null;
+    };
   }, []);
 
   useEffect(() => {
@@ -305,7 +289,7 @@ export default function MapView({ reports = [] }) {
       leafletMap.current.removeLayer(focusMarkerRef.current);
     }
 
-    focusMarkerRef.current = L.marker([latitude, longitude], { icon: createPulseIcon("#22c55e") })
+    focusMarkerRef.current = L.marker([latitude, longitude], { icon: createFocusIcon("#22c55e") })
       .addTo(leafletMap.current)
       .bindPopup(`<b>${display_name}</b>`)
       .openPopup();
@@ -334,7 +318,7 @@ export default function MapView({ reports = [] }) {
           leafletMap.current.removeLayer(focusMarkerRef.current);
         }
 
-        focusMarkerRef.current = L.marker([latitude, longitude], { icon: createPulseIcon("#3b82f6") })
+        focusMarkerRef.current = L.marker([latitude, longitude], { icon: createFocusIcon("#3b82f6") })
           .addTo(leafletMap.current)
           .bindPopup(`
             <div>
@@ -368,33 +352,21 @@ export default function MapView({ reports = [] }) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
 
       {/* Premium Search Bar */}
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="grid gap-3 md:grid-cols-[1fr_auto_auto_auto_auto]">
         <input
           type="text"
           placeholder="Search city..."
           value={city}
           onChange={(e) => setCity(e.target.value)}
-          className="w-full flex-1 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white backdrop-blur-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+          className="w-full rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white backdrop-blur-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
         />
-        <button
-          onClick={searchCity}
-          className="rounded-xl bg-linear-to-r from-green-600 to-emerald-500 px-6 py-3 font-semibold text-white shadow-lg transition duration-300 hover:scale-105 sm:w-auto"
-        >
-          Search
-        </button>
-        <button
-          onClick={getLiveLocation}
-          className="rounded-xl bg-linear-to-r from-sky-600 to-cyan-500 px-6 py-3 font-semibold text-white shadow-lg transition duration-300 hover:scale-105 sm:w-auto"
-        >
-          Use Live Location
-        </button>
         <select
           value={selectedPriority}
           onChange={(event) => setSelectedPriority(event.target.value)}
-          className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white outline-none backdrop-blur-md focus:ring-2 focus:ring-yellow-400 sm:w-auto"
+          className="rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white outline-none backdrop-blur-md focus:ring-2 focus:ring-cyan-500/50"
         >
           <option value="All" className="text-slate-900">All priorities</option>
           <option value="High" className="text-slate-900">High priority</option>
@@ -402,9 +374,21 @@ export default function MapView({ reports = [] }) {
           <option value="Low" className="text-slate-900">Low priority</option>
         </select>
         <button
+          onClick={searchCity}
+          className="rounded-2xl bg-linear-to-r from-cyan-600 to-sky-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition duration-300 hover:scale-105"
+        >
+          Search
+        </button>
+        <button
+          onClick={getLiveLocation}
+          className="rounded-2xl bg-linear-to-r from-emerald-600 to-teal-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition duration-300 hover:scale-105"
+        >
+          Use Live Location
+        </button>
+        <button
           onClick={refetchReports}
           disabled={reportsLoading}
-          className="flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3 font-semibold text-white shadow-lg transition duration-300 hover:scale-105 active:scale-95 disabled:opacity-50 sm:w-auto"
+          className="flex items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white shadow-lg transition duration-300 hover:scale-105 active:scale-95 disabled:opacity-50"
         >
           <RotateCw className={`h-4 w-4 ${reportsLoading ? "animate-spin" : ""}`} />
           {reportsLoading ? "Reloading..." : "Reload"}
@@ -412,24 +396,55 @@ export default function MapView({ reports = [] }) {
       </div>
 
       {locationStatus && (
-        <p className="text-sm text-gray-300">{locationStatus}</p>
+        <p className="text-sm text-cyan-300/80 bg-cyan-950/20 border border-cyan-500/10 px-4 py-2.5 rounded-xl">{locationStatus}</p>
       )}
       {areaSummary && (
-        <p className="text-sm text-slate-300">{areaSummary}</p>
+        <p className="text-sm text-slate-300 bg-slate-900/40 border border-white/5 px-4 py-2.5 rounded-xl">{areaSummary}</p>
       )}
 
-      <div className="flex flex-wrap items-center gap-4 text-xs text-slate-300">
-        <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-red-500" />High priority</span>
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-4 text-xs text-slate-300 bg-white/2 border border-white/5 px-4 py-3 rounded-2xl">
+        <span className="font-medium text-slate-400 uppercase tracking-wider text-[10px] mr-2">Legend:</span>
+        <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-red-500 animate-pulse" />High priority</span>
         <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-yellow-400" />Medium priority</span>
         <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-blue-500" />Low priority</span>
       </div>
 
       {/* Premium Map Container */}
-      <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10">
-        <div ref={mapRef} className="w-full" style={{ height: "clamp(20rem, 45vw, 31.25rem)" }}></div>
+      <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10">
+        <div ref={mapRef} className="w-full" style={{ height: "500px" }}></div>
 
         {/* Cinematic Overlay */}
         <div className="absolute inset-0 pointer-events-none bg-linear-to-b from-black/20 via-transparent to-black/60"></div>
+      </div>
+
+      {/* Mapped Complaints Info Cards */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300/80">Recently Mapped Complaints</h3>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {complaints.slice(0, 6).map((report) => (
+            <div key={report.id} className="rounded-2xl border border-white/10 bg-white/2 p-4 transition duration-300 hover:border-cyan-500/30 hover:bg-white/5">
+              <p className="text-sm font-semibold text-white truncate">{report.title}</p>
+              <p className="mt-1 text-xs text-slate-400 truncate">{report.location}</p>
+              <div className="mt-3 flex items-center justify-between text-xs">
+                <span className="text-slate-400">{report.category || "General"}</span>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/5 ${
+                  report.priority === "High" ? "text-red-400" : report.priority === "Medium" ? "text-yellow-400" : "text-blue-400"
+                }`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${
+                    report.priority === "High" ? "bg-red-500" : report.priority === "Medium" ? "bg-yellow-400" : "bg-blue-500"
+                  }`} />
+                  {report.priority}
+                </span>
+              </div>
+            </div>
+          ))}
+          {complaints.length === 0 && (
+            <div className="col-span-full rounded-2xl border border-dashed border-white/10 py-8 text-center text-sm text-slate-500">
+              No active complaints to show on the list.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
