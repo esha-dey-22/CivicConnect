@@ -386,7 +386,7 @@ export default function Dashboard() {
 
       {/* Dynamic Notification Toast Pop-Up */}
       {activeToast && (
-        <div className="fixed bottom-6 right-6 z-[999] max-w-sm rounded-2xl border border-cyan-400/30 bg-slate-900/90 p-4 shadow-2xl backdrop-blur-md transition-all duration-500 animate-slide-in">
+        <div className="fixed top-28 sm:top-24 right-6 z-[999] max-w-sm rounded-2xl border border-cyan-400/30 bg-slate-900/90 p-4 shadow-2xl backdrop-blur-md transition-all duration-500 animate-slide-in">
           <div className="flex items-start gap-3">
             <div className="rounded-xl bg-cyan-500/20 p-2 text-cyan-400">
               <Bell className="h-5 w-5 animate-bounce" />

@@ -83,3 +83,18 @@ svg {
 .btn-secondary {
   @apply bg-transparent border border-indigo-500 text-indigo-200 hover:bg-indigo-500/20 rounded-lg px-6 py-3 transition-colors;
 }
+
+@keyframes slide-in-top-right {
+  from {
+    transform: translateY(-1.5rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in-top-right 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
