@@ -204,8 +204,10 @@ app.post("/notifications", isAdmin, async (req, res) => {
 
     // Send physical email asynchronously in the background
     if (req.body.recipientEmail && transporter) {
+      const senderEmail = req.body.adminEmail || "admin@civicconnect.gov";
       transporter.sendMail({
-        from: `"CivicConnect Admin" <${process.env.EMAIL_USER}>`,
+        from: `"CivicConnect Admin (${senderEmail})" <${process.env.EMAIL_USER}>`,
+        replyTo: senderEmail,
         to: req.body.recipientEmail,
         subject: "New Update from CivicConnect",
         text: req.body.message
@@ -243,8 +245,10 @@ app.put("/issues/:id", isAdmin, async (req, res) => {
 
       // Send email notification
       if (transporter) {
+        const senderEmail = req.body.adminEmail || "admin@civicconnect.gov";
         transporter.sendMail({
-          from: `"CivicConnect Admin" <${process.env.EMAIL_USER}>`,
+          from: `"CivicConnect Admin (${senderEmail})" <${process.env.EMAIL_USER}>`,
+          replyTo: senderEmail,
           to: updatedIssue.reporterEmail,
           subject: `Complaint Status Updated: ${req.body.status}`,
           text: statusMessage

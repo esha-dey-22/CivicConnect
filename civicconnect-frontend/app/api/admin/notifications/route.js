@@ -20,6 +20,7 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
+    body.adminEmail = email;
     const backendUrl = "http://127.0.0.1:5001/notifications";
     const adminApiKey = process.env.ADMIN_API_KEY || "civicconnect_secure_admin_key_2026";
 
