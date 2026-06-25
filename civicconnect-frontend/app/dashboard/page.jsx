@@ -12,8 +12,22 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
 } from "recharts";
-import { MapPin, Radar, RotateCw, Waves } from "lucide-react";
+import { 
+  MapPin, 
+  Radar, 
+  RotateCw, 
+  Waves, 
+  BarChart3, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Activity, 
+  Tag 
+} from "lucide-react";
 import ReportForm from "../../components/ReportForm";
 import ComplaintsRegistry from "../../components/ComplaintsRegistry";
 import { useReport } from "../context/ReportContext";
@@ -133,61 +147,203 @@ export default function Dashboard() {
       )}
 
       {/* STATS */}
-
       {activeTab === "stats" && (
-        <div className="space-y-6 rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-8">
-          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+        <div className="space-y-8 rounded-2xl border border-white/10 bg-white/5 p-6 sm:p-8">
+          
+          {/* Header row */}
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-sky-300/80">Status analytics</p>
-              <h2 className="mt-2 text-xl font-semibold text-white sm:text-2xl">Complaint progress bar graph</h2>
-              <p className="mt-2 text-sm text-slate-300">The chart updates automatically as you add complaints and status values change.</p>
+              <p className="text-xs uppercase tracking-[0.28em] text-cyan-400/90 font-medium">Platform Analytics</p>
+              <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">Live Dashboard Performance</h2>
+              <p className="mt-2 text-sm text-slate-300">
+                Track resolution rates, priorities, and category distribution for community issues.
+              </p>
             </div>
             <button
               onClick={refetchReports}
               disabled={reportsLoading}
-              className="flex items-center justify-center gap-2 self-start rounded-xl border border-white/20 bg-white/10 px-5 py-3 font-semibold text-white shadow-lg transition duration-300 hover:scale-105 active:scale-95 disabled:opacity-50"
+              className="flex items-center justify-center gap-2 self-start rounded-xl border border-cyan-400/20 bg-cyan-500/10 px-5 py-3 font-semibold text-white shadow-lg transition duration-300 hover:scale-105 active:scale-95 disabled:opacity-50 sm:self-center"
             >
               <RotateCw className={`h-4 w-4 ${reportsLoading ? "animate-spin" : ""}`} />
-              {reportsLoading ? "Reloading..." : "Reload"}
+              {reportsLoading ? "Refreshing..." : "Refresh Stats"}
             </button>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-xl border border-sky-300/20 bg-sky-500/10 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-sky-200/80">Pending</p>
-              <p className="mt-2 text-3xl font-semibold text-white">{pending}</p>
+          {/* Metric Cards Row */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-2xl border border-white/10 bg-white/2 p-5">
+              <div className="flex items-center justify-between">
+                <p className="text-xs uppercase tracking-wider text-slate-400">Total Registered</p>
+                <div className="rounded-lg bg-cyan-50/5 p-2 text-cyan-400">
+                  <BarChart3 size={18} />
+                </div>
+              </div>
+              <p className="mt-4 text-3xl font-extrabold text-white">{reports.length}</p>
+              <p className="mt-1 text-xs text-slate-400">All filed citizen reports</p>
             </div>
-            <div className="rounded-xl border border-amber-300/20 bg-amber-500/10 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-amber-200/80">Under Process</p>
-              <p className="mt-2 text-3xl font-semibold text-white">{processing}</p>
+
+            <div className="rounded-2xl border border-white/10 bg-white/2 p-5">
+              <div className="flex items-center justify-between">
+                <p className="text-xs uppercase tracking-wider text-slate-400">Resolution Rate</p>
+                <div className="rounded-lg bg-emerald-50/5 p-2 text-emerald-400">
+                  <CheckCircle2 size={18} />
+                </div>
+              </div>
+              <p className="mt-4 text-3xl font-extrabold text-white">
+                {reports.length > 0 ? Math.round((resolved / reports.length) * 100) : 0}%
+              </p>
+              <p className="mt-1 text-xs text-slate-400">{resolved} of {reports.length} issues resolved</p>
             </div>
-            <div className="rounded-xl border border-emerald-300/20 bg-emerald-500/10 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-emerald-200/80">Resolved</p>
-              <p className="mt-2 text-3xl font-semibold text-white">{resolved}</p>
+
+            <div className="rounded-2xl border border-white/10 bg-white/2 p-5">
+              <div className="flex items-center justify-between">
+                <p className="text-xs uppercase tracking-wider text-slate-400">Active Operations</p>
+                <div className="rounded-lg bg-amber-50/5 p-2 text-amber-400">
+                  <Activity size={18} />
+                </div>
+              </div>
+              <p className="mt-4 text-3xl font-extrabold text-white">
+                {reports.filter(r => r.status === "Pending" || r.status === "Under Process" || r.status === "Filed").length}
+              </p>
+              <p className="mt-1 text-xs text-slate-400">In process or pending backlog</p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/2 p-5">
+              <div className="flex items-center justify-between">
+                <p className="text-xs uppercase tracking-wider text-slate-400">High Severity</p>
+                <div className="rounded-lg bg-red-55/5 p-2 text-red-400">
+                  <AlertTriangle size={18} />
+                </div>
+              </div>
+              <p className="mt-4 text-3xl font-extrabold text-white">
+                {reports.filter(r => r.priority === "High" && r.status !== "Resolved").length}
+              </p>
+              <p className="mt-1 text-xs text-slate-400">Unresolved high priority issues</p>
             </div>
           </div>
 
-          <div className="h-[320px] rounded-2xl border border-white/10 bg-slate-950/40 p-3 sm:h-[360px] sm:p-4">
-            <ResponsiveContainer>
-              <BarChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" />
-                <XAxis dataKey="status" stroke="rgba(203,213,225,0.9)" />
-                <YAxis allowDecimals={false} stroke="rgba(203,213,225,0.9)" />
-                <Tooltip
-                  contentStyle={{
-                    background: "#020617",
-                    border: "1px solid rgba(148,163,184,0.2)",
-                    borderRadius: "12px",
-                    color: "#e2e8f0",
-                  }}
-                />
-                <Bar dataKey="count" radius={[8, 8, 0, 0]} fill="#38bdf8" />
-              </BarChart>
-            </ResponsiveContainer>
+          {/* Interactive Chart Grid */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            
+            {/* Status Distribution Funnel */}
+            <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-300 mb-4">Resolution Status Funnel</h3>
+              <div className="h-[280px]">
+                <ResponsiveContainer>
+                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.15)" />
+                    <XAxis dataKey="status" stroke="#94a3b8" fontSize={11} />
+                    <YAxis allowDecimals={false} stroke="#94a3b8" fontSize={11} />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#0f172a",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        borderRadius: "12px",
+                        color: "#f8fafc",
+                      }}
+                    />
+                    <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                      {chartData.map((entry, index) => {
+                        let color = "#38bdf8"; // default sky-400 for pending/other
+                        if (entry.status === "Resolved") color = "#34d399"; // emerald-400
+                        if (entry.status === "Under Process") color = "#fbbf24"; // amber-400
+                        return <Cell key={`cell-${index}`} fill={color} />;
+                      })}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Priority Doughnut Chart */}
+            <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-300 mb-4">Severity Breakdown</h3>
+              <div className="h-[280px] flex flex-col justify-between">
+                <div className="h-[220px] w-full">
+                  <ResponsiveContainer>
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: "High Priority", value: reports.filter(r => r.priority === "High").length, color: "#ef4444" },
+                          { name: "Medium Priority", value: reports.filter(r => r.priority === "Medium").length, color: "#facc15" },
+                          { name: "Low Priority", value: reports.filter(r => r.priority === "Low").length, color: "#3b82f6" }
+                        ].filter(p => p.value > 0)}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {[
+                          { name: "High Priority", value: reports.filter(r => r.priority === "High").length, color: "#ef4444" },
+                          { name: "Medium Priority", value: reports.filter(r => r.priority === "Medium").length, color: "#facc15" },
+                          { name: "Low Priority", value: reports.filter(r => r.priority === "Low").length, color: "#3b82f6" }
+                        ].filter(p => p.value > 0).map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          background: "#0f172a",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                          borderRadius: "12px",
+                          color: "#f8fafc",
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex justify-center gap-6 text-xs text-slate-400">
+                  <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />High ({reports.filter(r => r.priority === "High").length})</span>
+                  <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-yellow-400" />Medium ({reports.filter(r => r.priority === "Medium").length})</span>
+                  <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-blue-500" />Low ({reports.filter(r => r.priority === "Low").length})</span>
+                </div>
+              </div>
+            </div>
+
           </div>
+
+          {/* Top Categories Horizontal Chart */}
+          {reports.length > 0 && (
+            <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-300 mb-4">Top 5 Issue Categories</h3>
+              <div className="h-[200px]">
+                <ResponsiveContainer>
+                  <BarChart
+                    layout="vertical"
+                    data={Object.entries(
+                      reports.reduce((acc, r) => {
+                        const cat = r.category || "General";
+                        acc[cat] = (acc[cat] || 0) + 1;
+                        return acc;
+                      }, {})
+                    )
+                      .map(([name, value]) => ({ name, value }))
+                      .sort((a, b) => b.value - a.value)
+                      .slice(0, 5)}
+                    margin={{ top: 5, right: 20, left: 30, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" />
+                    <XAxis type="number" allowDecimals={false} stroke="#94a3b8" fontSize={11} />
+                    <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#0f172a",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        borderRadius: "12px",
+                        color: "#f8fafc",
+                      }}
+                    />
+                    <Bar dataKey="value" fill="#818cf8" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
 
           {reports.length === 0 ? (
-            <p className="text-sm text-slate-400">No complaints yet. Add one in Report tab to populate the chart.</p>
+            <p className="text-sm text-slate-500 text-center">No complaints filed yet. Populate the system to see full insights.</p>
           ) : null}
         </div>
       )}
