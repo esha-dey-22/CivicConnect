@@ -190,10 +190,15 @@ export const ReportProvider = ({ children }) => {
     try {
       const response = await fetch("/api/issues");
       const rawReports = await response.json();
-      const baseReports = rawReports.map((report, index) => normalizeReport(report, index));
-      const normalized = prioritizeReports(baseReports);
-
-      setReports(normalized);
+      
+      if (Array.isArray(rawReports)) {
+        const baseReports = rawReports.map((report, index) => normalizeReport(report, index));
+        const normalized = prioritizeReports(baseReports);
+        setReports(normalized);
+      } else {
+        setReports([]);
+        setReportsError("Invalid data format received from backend.");
+      }
     } catch (error) {
       setReportsError(
         error?.message || "Unable to load complaints from backend."
@@ -208,9 +213,14 @@ export const ReportProvider = ({ children }) => {
     try {
       const response = await fetch("/api/notifications");
       const data = await response.json();
-      setNotifications(data);
+      if (Array.isArray(data)) {
+        setNotifications(data);
+      } else {
+        setNotifications([]);
+      }
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
+      setNotifications([]);
     }
   }, []);
 
